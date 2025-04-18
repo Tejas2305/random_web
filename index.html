@@ -23,7 +23,7 @@
 
     <script>
         async function fetchDeviceList() {
-            const ws = new WebSocket("ws://localhost:8765");
+            const ws = new WebSocket("ws://192.168.158.98:8765");
             ws.onmessage = (event) => {
                 const devices = JSON.parse(event.data);
                 devices.forEach(createDevicePlayer);
@@ -49,7 +49,7 @@
 
             let gainNode, audioContext, source;
 
-            const ws = new WebSocket(`ws://localhost:${port}`);
+            const ws = new WebSocket(`ws://192.168.158.98:${port}`);
             ws.binaryType = "arraybuffer";
 
             ws.onmessage = (e) => {
