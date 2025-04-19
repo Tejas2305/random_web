@@ -1,96 +1,897 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
-    <title>Multi Audio Viewer</title>
+    <title>Multi Stream Viewer</title>
     <style>
-        .device { margin-bottom: 20px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .device {
+            margin-bottom: 30px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
         .level-bar {
             width: 100%;
-            height: 10px;
+            height: 20px;
             background: #eee;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
         }
+
         .level-fill {
             height: 100%;
-            background: green;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
             width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button.muted {
+            background-color: #f44336;
+        }
+
+        button.muted:hover {
+            background-color: #d32f2f;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #444;
+            margin-top: 30px;
+        }
+
+        h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .connection-status {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+        }
+
+        .status-connected {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+
+        .status-disconnected {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+
+        .status-connecting {
+            background-color: #fcf8e3;
+            color: #8a6d3b;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        #server-select {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+        }
+
+        .buffer-info {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .buffer-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .buffer-status.ready {
+            background-color: #4CAF50;
+        }
+
+        .buffer-status.filling {
+            background-color: #FFC107;
+        }
+
+        .video-container {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .video-stream {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: calc(50% - 20px);
+            box-sizing: border-box;
+        }
+
+        .video-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .video-display {
+            width: 100%;
+            background-color: #000;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        video,
+        img {
+            width: 100%;
+            display: block;
+        }
+
+        #devices {
+            margin-bottom: 30px;
+        }
+
+        .video-info {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .video-stream {
+                width: 100%;
+            }
+        }
+
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background-color: #f0f0f0;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-right: 2px;
+        }
+
+        .tab-button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .terminal-container {
+            background-color: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin-bottom: 30px;
+        }
+
+        #terminal-output {
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 5px;
+        }
+
+        .terminal-input-container {
+            display: flex;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .prompt {
+            color: #0f0;
+            margin-right: 5px;
+            font-weight: bold;
+        }
+
+        #terminal-input {
+            flex-grow: 1;
+            background-color: #000;
+            color: #0f0;
+            border: 1px solid #333;
+            padding: 5px;
+            font-family: monospace;
+        }
+
+        #send-command {
+            margin-left: 10px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-button {
+            padding: 8px 16px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .action-button:hover {
+            background-color: #444;
+        }
+
+        #restart-script {
+            background-color: #990000;
+        }
+
+        #restart-script:hover {
+            background-color: #cc0000;
         }
     </style>
 </head>
-<body>
-    <h1>Audio Devices</h1>
-    <div id="devices"></div>
 
+<body>
+    <h1>Multi Stream Viewer</h1>
+    <div id="server-select">
+        <h3>Select Server</h3>
+        <div>
+            <select id="server-dropdown">
+                <option value="">Loading servers...</option>
+            </select>
+            <button id="connect-button">Connect</button>
+            <button id="refresh-button">Refresh List</button>
+        </div>
+    </div>
+    <div class="connection-status" id="connection-status">Fetching available servers...</div>
+    <div class="tab-buttons">
+        <button class="tab-button active" data-tab="audio-tab">Audio Streams</button>
+        <button class="tab-button" data-tab="video-tab">Video Streams</button>
+        <button class="tab-button" data-tab="command-tab">Command Terminal</button>
+    </div>
+    <div id="audio-tab" class="tab-content active">
+        <h2>Audio Streams</h2>
+        <div id="devices"></div>
+    </div>
+    <div id="video-tab" class="tab-content">
+        <h2>Video Streams</h2>
+        <div class="video-container" id="video-streams">
+            <div class="video-stream">
+                <div class="video-header">
+                    <h3>Webcam Stream</h3>
+                    <div>
+                        <button id="webcam-toggle" class="muted">Start Webcam</button>
+                    </div>
+                </div>
+                <div class="video-display">
+                    <video id="webcam-video" autoplay playsinline muted></video>
+                </div>
+                <div class="video-info" id="webcam-info">
+                    Not connected
+                </div>
+            </div>
+            <div class="video-stream">
+                <div class="video-header">
+                    <h3>Screen Stream</h3>
+                    <div>
+                        <button id="screen-toggle" class="muted">Start Screen</button>
+                    </div>
+                </div>
+                <div class="video-display">
+                    <img id="screen-image" src="/api/placeholder/640/480" alt="Screen stream placeholder">
+                </div>
+                <div class="video-info" id="screen-info">
+                    Not connected
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="command-tab" class="tab-content">
+        <h2>Command Terminal</h2>
+        <div class="terminal-container">
+            <div id="terminal-output"></div>
+            <div class="terminal-input-container">
+                <span class="prompt">$</span>
+                <input type="text" id="terminal-input" placeholder="Enter command...">
+                <button id="send-command">Send</button>
+            </div>
+            <div class="action-buttons">
+                <button id="restart-script" class="action-button">Restart Python Script</button>
+                <button id="clear-terminal" class="action-button">Clear Terminal</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.19.1/firebase-database-compat.js"></script>
     <script>
-        async function fetchDeviceList() {
-            const ws = new WebSocket("ws://192.168.158.98:8765");
-            ws.onmessage = (event) => {
-                const devices = JSON.parse(event.data);
-                devices.forEach(createDevicePlayer);
+        const firebaseConfig = {
+            apiKey: "AIzaSyCIQnr3GRrhzdVMTjeCvYNOZKn4M0Pgz3s",
+            authDomain: "trial-cbfb3.firebaseapp.com",
+            databaseURL: "https://trial-cbfb3-default-rtdb.firebaseio.com",
+            projectId: "trial-cbfb3",
+            storageBucket: "trial-cbfb3.firebasestorage.app",
+            messagingSenderId: "753770202964",
+            appId: "1:753770202964:web:36a5bfc9f91fb9ada56ac1",
+            measurementId: "G-H3P15CE40W"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const serverDropdown = document.getElementById('server-dropdown');
+        const connectButton = document.getElementById('connect-button');
+        const refreshButton = document.getElementById('refresh-button');
+        const statusElement = document.getElementById('connection-status');
+        const devicesContainer = document.getElementById('devices');
+        const webcamVideo = document.getElementById('webcam-video');
+        const screenImage = document.getElementById('screen-image');
+        const webcamToggle = document.getElementById('webcam-toggle');
+        const screenToggle = document.getElementById('screen-toggle');
+        const webcamInfo = document.getElementById('webcam-info');
+        const screenInfo = document.getElementById('screen-info');
+        const terminalOutput = document.getElementById('terminal-output');
+        const terminalInput = document.getElementById('terminal-input');
+        const sendCommandBtn = document.getElementById('send-command');
+        const restartScriptBtn = document.getElementById('restart-script');
+        const clearTerminalBtn = document.getElementById('clear-terminal');
+        let commandSocket = null;
+        let commandPort = null;
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(tab => tab.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+        let webcamConnection = null;
+        let screenConnection = null;
+        function connectToCommandSocket() {
+            if (commandSocket && commandSocket.readyState === WebSocket.OPEN) {
+                return;
+            }
+            const selectedServer = serverDropdown.value;
+            if (!selectedServer || !servers[selectedServer]) {
+                appendToTerminal('Error: No server selected');
+                return;
+            }
+            const server = servers[selectedServer];
+            let wsUrl = server.public_url;
+            if (!wsUrl.startsWith('ws://') && !wsUrl.startsWith('wss://')) {
+                wsUrl = 'ws://' + wsUrl;
+            }
+            const url = new URL(wsUrl);
+            const commandUrl = `ws://${url.hostname}:${commandPort}`;
+            commandSocket = new WebSocket(commandUrl);
+            commandSocket.onopen = () => {
+                appendToTerminal('Connected to command terminal');
+            };
+            commandSocket.onmessage = (event) => {
+                appendToTerminal(event.data);
+            };
+            commandSocket.onerror = (error) => {
+                appendToTerminal(`Command WebSocket Error: ${error.message || 'Unknown error'}`);
+                commandSocket = null;
+            };
+            commandSocket.onclose = () => {
+                appendToTerminal('Command terminal disconnected');
+                commandSocket = null;
+                setTimeout(connectToCommandSocket, 5000);
             };
         }
-
-        function createDevicePlayer({ name, port }) {
+        function appendToTerminal(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            terminalOutput.innerHTML += `[${timestamp}] ${message}\n`;
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+        function sendCommand(command) {
+            if (!commandSocket || commandSocket.readyState !== WebSocket.OPEN) {
+                appendToTerminal('Command terminal not connected. Reconnecting...');
+                connectToCommandSocket();
+                setTimeout(() => sendCommand(command), 1000);
+                return;
+            }
+            appendToTerminal(`> ${command}`);
+            commandSocket.send(command);
+        }
+        sendCommandBtn.addEventListener('click', () => {
+            const command = terminalInput.value.trim();
+            if (command) {
+                sendCommand(command);
+                terminalInput.value = '';
+            }
+        });
+        terminalInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const command = terminalInput.value.trim();
+                if (command) {
+                    sendCommand(command);
+                    terminalInput.value = '';
+                }
+            }
+        });
+        restartScriptBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to restart the Python script?')) {
+                sendCommand('__RESTART_SCRIPT__');
+                appendToTerminal('Restart command sent. Waiting for server to restart...');
+                closeAllConnections();
+                setTimeout(() => {
+                    connectToServer();
+                    connectToCommandSocket();
+                }, 5000);
+            }
+        });
+        clearTerminalBtn.addEventListener('click', () => {
+            terminalOutput.innerHTML = '';
+        });
+        function updateStatus(message, status) {
+            statusElement.textContent = message;
+            statusElement.className = 'connection-status';
+            if (status) {
+                statusElement.classList.add(`status-${status}`);
+            }
+        }
+        let servers = {};
+        let activeWebSocket = null;
+        let streamData = [];
+        function loadServers() {
+            updateStatus('Loading available servers...', 'connecting');
+            database.ref('audio_servers').once('value')
+                .then(snapshot => {
+                    const data = snapshot.val();
+                    servers = data || {};
+                    serverDropdown.innerHTML = '';
+                    if (!data || Object.keys(data).length === 0) {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'No servers available';
+                        serverDropdown.appendChild(option);
+                        updateStatus('No servers found in database', 'disconnected');
+                    } else {
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = '-- Select a server --';
+                        serverDropdown.appendChild(defaultOption);
+                        Object.keys(servers).forEach(key => {
+                            const server = servers[key];
+                            const option = document.createElement('option');
+                            option.value = key;
+                            option.textContent = `${server.hostname} (${server.username})`;
+                            serverDropdown.appendChild(option);
+                        });
+                        updateStatus('Select a server to connect', 'connecting');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading servers:', error);
+                    updateStatus('Error loading server list from Firebase', 'disconnected');
+                });
+        }
+        function connectToServer() {
+            const selectedServer = serverDropdown.value;
+            closeAllConnections();
+            if (!selectedServer) {
+                updateStatus('Please select a server', 'disconnected');
+                return;
+            }
+            const server = servers[selectedServer];
+            if (!server || !server.public_url) {
+                updateStatus('Invalid server or missing URL', 'disconnected');
+                return;
+            }
+            updateStatus(`Connecting to ${server.hostname}...`, 'connecting');
+            let wsUrl = server.public_url;
+            if (!wsUrl.startsWith('ws://') && !wsUrl.startsWith('wss://')) {
+                wsUrl = 'ws://' + wsUrl;
+            }
+            const ws = new WebSocket(wsUrl);
+            activeWebSocket = ws;
+            ws.onopen = () => {
+                updateStatus(`Connected to ${server.hostname}`, 'connected');
+                const url = new URL(wsUrl);
+                commandPort = parseInt(url.port) + 1;
+                connectToCommandSocket();
+            };
+            ws.onmessage = (event) => {
+                try {
+                    streamData = JSON.parse(event.data);
+                    if (streamData.length === 0) {
+                        updateStatus('No streams found on server', 'disconnected');
+                    } else {
+                        const audioStreams = streamData.filter(d => !d.type || d.type === 'audio');
+                        const webcamStreams = streamData.filter(d => d.type === 'webcam');
+                        const screenStreams = streamData.filter(d => d.type === 'screen');
+                        updateStatus(
+                            `Found ${audioStreams.length} audio, ${webcamStreams.length} webcam, ${screenStreams.length} screen stream(s)`,
+                            'connected'
+                        );
+                        devicesContainer.innerHTML = '';
+                        audioStreams.forEach(createDevicePlayer);
+                        webcamToggle.disabled = webcamStreams.length === 0;
+                        screenToggle.disabled = screenStreams.length === 0;
+                        if (webcamStreams.length > 0) {
+                            webcamToggle.textContent = 'Start Webcam';
+                            webcamToggle.classList.add('muted');
+                            webcamInfo.textContent = `Available: ${webcamStreams[0].resolution[0]}x${webcamStreams[0].resolution[1]} @ ${webcamStreams[0].fps}fps`;
+                        } else {
+                            webcamInfo.textContent = 'No webcam stream available';
+                        }
+                        if (screenStreams.length > 0) {
+                            screenToggle.textContent = 'Start Screen';
+                            screenToggle.classList.add('muted');
+                            screenInfo.textContent = `Available: ${screenStreams[0].resolution[0]}x${screenStreams[0].resolution[1]} @ ${screenStreams[0].fps}fps`;
+                        } else {
+                            screenInfo.textContent = 'No screen stream available';
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing stream data:', e);
+                    updateStatus('Error parsing stream data', 'disconnected');
+                }
+            };
+            ws.onerror = (error) => {
+                console.error('WebSocket Error:', error);
+                updateStatus('Connection error to server', 'disconnected');
+            };
+            ws.onclose = () => {
+                updateStatus('Disconnected from server', 'disconnected');
+                if (commandSocket) {
+                    commandSocket.close();
+                    commandSocket = null;
+                }
+            };
+        }
+        function closeAllConnections() {
+            if (activeWebSocket) {
+                activeWebSocket.close();
+                devicesContainer.innerHTML = '';
+            }
+            if (webcamConnection) {
+                webcamConnection.close();
+                webcamConnection = null;
+            }
+            if (screenConnection) {
+                screenConnection.close();
+                screenConnection = null;
+            }
+            if (commandSocket) {
+                commandSocket.close();
+                commandSocket = null;
+            }
+            webcamVideo.srcObject = null;
+            screenImage.src = "/api/placeholder/640/480";
+            webcamInfo.textContent = 'Not connected';
+            screenInfo.textContent = 'Not connected';
+            webcamToggle.textContent = 'Start Webcam';
+            screenToggle.textContent = 'Start Screen';
+            webcamToggle.classList.add('muted');
+            screenToggle.classList.add('muted');
+        }
+        class AudioBufferQueue {
+            constructor(context, bufferSizeMs, sampleRate) {
+                this.context = context;
+                this.queue = [];
+                this.isPlaying = false;
+                this.bufferSizeMs = bufferSizeMs || 200;
+                this.sampleRate = sampleRate || 44100;
+                this.bufferThreshold = Math.ceil((this.sampleRate * this.bufferSizeMs) / 1000 / 2048);
+                this.onBufferStatusChange = null;
+                this.gainNode = this.context.createGain();
+                this.gainNode.connect(this.context.destination);
+                console.log(`AudioBufferQueue created with buffer size ${this.bufferSizeMs}ms, ` +
+                    `threshold of ${this.bufferThreshold} chunks`);
+            }
+            addBuffer(arrayBuffer) {
+                const buffer = this.createAudioBuffer(arrayBuffer);
+                this.queue.push(buffer);
+                if (this.onBufferStatusChange) {
+                    this.onBufferStatusChange(this.isBufferReady(), this.queue.length);
+                }
+                if (!this.isPlaying && this.isBufferReady()) {
+                    this.startPlaying();
+                }
+            }
+            createAudioBuffer(arrayBuffer) {
+                const int16Array = new Int16Array(arrayBuffer);
+                const float32Array = new Float32Array(int16Array.length);
+                for (let i = 0; i < int16Array.length; i++) {
+                    float32Array[i] = int16Array[i] / 32768.0;
+                }
+                const buffer = this.context.createBuffer(1, float32Array.length, this.sampleRate);
+                buffer.copyToChannel(float32Array, 0);
+                return buffer;
+            }
+            isBufferReady() {
+                return this.queue.length >= this.bufferThreshold;
+            }
+            startPlaying() {
+                if (this.queue.length === 0) return;
+                this.isPlaying = true;
+                this.playNextBuffer();
+            }
+            playNextBuffer() {
+                if (!this.isPlaying || this.queue.length === 0) return;
+                const buffer = this.queue.shift();
+                const source = this.context.createBufferSource();
+                source.buffer = buffer;
+                source.connect(this.gainNode);
+                source.onended = () => {
+                    this.playNextBuffer();
+                };
+                source.start(0);
+                if (this.onBufferStatusChange) {
+                    this.onBufferStatusChange(this.isBufferReady(), this.queue.length);
+                }
+                if (this.queue.length < Math.ceil(this.bufferThreshold / 3)) {
+                    this.isPlaying = false;
+                    console.log("Buffer running low. Pausing to rebuild buffer...");
+                }
+            }
+            setGain(value) {
+                if (this.gainNode) {
+                    this.gainNode.gain.value = value;
+                }
+            }
+            clear() {
+                this.queue = [];
+                this.isPlaying = false;
+            }
+        }
+        function createDevicePlayer(device) {
+            const wsUrl = device.public_url || `ws://localhost:${device.port}`;
+            const { name } = device;
             const container = document.createElement("div");
             container.className = "device";
-
             const title = document.createElement("h3");
             title.textContent = name;
-
             const levelBar = document.createElement("div");
             levelBar.className = "level-bar";
             const fill = document.createElement("div");
             fill.className = "level-fill";
             levelBar.appendChild(fill);
-
+            const controlsDiv = document.createElement("div");
+            controlsDiv.className = "controls";
             const muteBtn = document.createElement("button");
             muteBtn.textContent = "Mute";
+            muteBtn.onclick = toggleMute;
+            const statusSpan = document.createElement("span");
+            statusSpan.textContent = "Connecting...";
+            statusSpan.style.marginLeft = "10px";
+            controlsDiv.appendChild(muteBtn);
+            controlsDiv.appendChild(statusSpan);
+            const bufferInfo = document.createElement("div");
+            bufferInfo.className = "buffer-info";
+            const bufferStatus = document.createElement("span");
+            bufferStatus.className = "buffer-status filling";
+            const bufferText = document.createElement("span");
+            bufferText.textContent = "Buffering audio...";
+            bufferInfo.appendChild(bufferStatus);
+            bufferInfo.appendChild(bufferText);
             let isMuted = false;
-
-            let gainNode, audioContext, source;
-
-            const ws = new WebSocket(`ws://192.168.158.98:${port}`);
+            let audioContext;
+            let audioBufferQueue;
+            let bufferSizeMs = device.buffer_latency_ms || 10;
+            const ws = new WebSocket(wsUrl);
             ws.binaryType = "arraybuffer";
-
-            ws.onmessage = (e) => {
-                if (!audioContext) {
-                    audioContext = new AudioContext();
-                    gainNode = audioContext.createGain();
-                    gainNode.connect(audioContext.destination);
+            ws.onopen = () => {
+                statusSpan.textContent = "Connected";
+                statusSpan.style.color = "green";
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        latencyHint: 'playback'
+                    });
+                    audioBufferQueue = new AudioBufferQueue(audioContext, bufferSizeMs, 44100);
+                    audioBufferQueue.onBufferStatusChange = (isReady, queueLength) => {
+                        if (isReady) {
+                            bufferStatus.className = "buffer-status ready";
+                            bufferText.textContent = `Buffer ready (${queueLength} chunks)`;
+                        } else {
+                            bufferStatus.className = "buffer-status filling";
+                            bufferText.textContent = `Buffering audio... (${queueLength}/${audioBufferQueue.bufferThreshold})`;
+                        }
+                    };
+                } catch (err) {
+                    console.error('Error initializing audio context:', err);
+                    statusSpan.textContent = "Error initializing audio";
+                    statusSpan.style.color = "red";
                 }
-
+            };
+            ws.onclose = () => {
+                statusSpan.textContent = "Disconnected";
+                statusSpan.style.color = "red";
+                bufferText.textContent = "Disconnected";
+            };
+            ws.onerror = (error) => {
+                console.error(`WebSocket Error for ${name}:`, error);
+                statusSpan.textContent = "Connection error";
+                statusSpan.style.color = "red";
+            };
+            ws.onmessage = (e) => {
                 const int16Array = new Int16Array(e.data);
-                const float32Array = new Float32Array(int16Array.length);
                 let maxAmp = 0;
                 for (let i = 0; i < int16Array.length; i++) {
-                    const sample = int16Array[i] / 32768.0;
-                    float32Array[i] = sample;
-                    maxAmp = Math.max(maxAmp, Math.abs(sample));
+                    const sample = Math.abs(int16Array[i] / 32768.0);
+                    maxAmp = Math.max(maxAmp, sample);
                 }
-
                 fill.style.width = `${Math.min(100, maxAmp * 100)}%`;
-
-                const buffer = audioContext.createBuffer(1, float32Array.length, 44100);
-                buffer.copyToChannel(float32Array, 0);
-                source = audioContext.createBufferSource();
-                source.buffer = buffer;
-                source.connect(gainNode);
-                source.start();
+                if (audioBufferQueue) {
+                    audioBufferQueue.addBuffer(e.data);
+                }
             };
-
-            muteBtn.onclick = () => {
+            function toggleMute() {
                 isMuted = !isMuted;
-                if (gainNode) gainNode.gain.value = isMuted ? 0 : 1;
+                if (audioBufferQueue) {
+                    audioBufferQueue.setGain(isMuted ? 0 : 1);
+                }
                 muteBtn.textContent = isMuted ? "Unmute" : "Mute";
-            };
-
+                muteBtn.className = isMuted ? "muted" : "";
+            }
             container.appendChild(title);
-            container.appendChild(muteBtn);
+            container.appendChild(bufferInfo);
+            container.appendChild(controlsDiv);
             container.appendChild(levelBar);
-            document.getElementById("devices").appendChild(container);
+            devicesContainer.appendChild(container);
         }
-
-        fetchDeviceList();
+        webcamToggle.addEventListener('click', () => {
+            const webcamStream = streamData.find(d => d.type === 'webcam');
+            if (!webcamStream) return;
+            if (webcamConnection) {
+                webcamConnection.close();
+                webcamConnection = null;
+                webcamVideo.srcObject = null;
+                webcamToggle.textContent = 'Start Webcam';
+                webcamToggle.classList.add('muted');
+                webcamInfo.textContent = `Available: ${webcamStream.resolution[0]}x${webcamStream.resolution[1]} @ ${webcamStream.fps}fps`;
+                return;
+            }
+            const wsUrl = webcamStream.public_url;
+            webcamConnection = new WebSocket(wsUrl);
+            webcamConnection.binaryType = 'arraybuffer';
+            webcamInfo.textContent = 'Connecting...';
+            webcamConnection.onopen = () => {
+                webcamToggle.textContent = 'Stop Webcam';
+                webcamToggle.classList.remove('muted');
+                webcamInfo.textContent = `Connected: ${webcamStream.resolution[0]}x${webcamStream.resolution[1]} @ ${webcamStream.fps}fps`;
+                const canvas = document.createElement('canvas');
+                canvas.width = webcamStream.resolution[0];
+                canvas.height = webcamStream.resolution[1];
+                const ctx = canvas.getContext('2d');
+                const stream = canvas.captureStream(60);
+                webcamVideo.srcObject = stream;
+                webcamConnection.onmessage = (event) => {
+                    const blob = new Blob([event.data], { type: 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+                    const img = new Image();
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        URL.revokeObjectURL(url);
+                    };
+                    img.src = url;
+                };
+            };
+            webcamConnection.onclose = () => {
+                webcamInfo.textContent = 'Disconnected';
+                webcamToggle.textContent = 'Start Webcam';
+                webcamToggle.classList.add('muted');
+            };
+            webcamConnection.onerror = (error) => {
+                console.error('Webcam WebSocket Error:', error);
+                webcamInfo.textContent = 'Connection error';
+            };
+        });
+        screenToggle.addEventListener('click', () => {
+            const screenStream = streamData.find(d => d.type === 'screen');
+            if (!screenStream) return;
+            if (screenConnection) {
+                screenConnection.close();
+                screenConnection = null;
+                screenImage.src = "/api/placeholder/640/480";
+                screenToggle.textContent = 'Start Screen';
+                screenToggle.classList.add('muted');
+                screenInfo.textContent = 'Available: ${screenStreamEconomized Stream resolution[0]}x${screenStream.resolution[1]} @ ${screenStream.fps}fps';
+                return;
+            }
+            const wsUrl = screenStream.public_url;
+            screenConnection = new WebSocket(wsUrl);
+            screenConnection.binaryType = 'arraybuffer';
+            screenInfo.textContent = 'Connecting...';
+            screenConnection.onopen = () => {
+                screenToggle.textContent = 'Stop Screen';
+                screenToggle.classList.remove('muted');
+                screenInfo.textContent = `Connected: ${screenStream.resolution[0]}x${screenStream.resolution[1]} @ ${screenStream.fps}fps`;
+                const imgElement = document.createElement('img');
+                imgElement.style.width = '100%';
+                imgElement.style.height = 'auto';
+                const parent = screenImage.parentNode;
+                parent.replaceChild(imgElement, screenImage);
+                screenConnection.imageElement = imgElement;
+                screenConnection.onmessage = (event) => {
+                    const blob = new Blob([event.data], { type: 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+                    imgElement.onload = () => {
+                        URL.revokeObjectURL(url);
+                    };
+                    imgElement.src = url;
+                };
+            };
+            screenConnection.onclose = () => {
+                screenInfo.textContent = 'Disconnected';
+                screenToggle.textContent = 'Start Screen';
+                screenToggle.classList.add('muted');
+                if (screenConnection.imageElement) {
+                    const parent = screenConnection.imageElement.parentNode;
+                    parent.replaceChild(screenImage, screenConnection.imageElement);
+                    screenImage.src = "/api/placeholder/640/480";
+                }
+            };
+            screenConnection.onerror = (error) => {
+                console.error('Screen WebSocket Error:', error);
+                screenInfo.textContent = 'Connection error';
+            };
+        });
+        connectButton.addEventListener('click', connectToServer);
+        refreshButton.addEventListener('click', loadServers);
+        loadServers();
     </script>
 </body>
+
 </html>
